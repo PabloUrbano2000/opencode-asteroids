@@ -29,7 +29,7 @@ Luego visita `http://localhost:3000`.
 | `←` `→`   | Rotar nave        |
 | `↑`       | Propulsar         |
 | `Espacio` | Disparar          |
-| `1`–`3`   | Cambiar skin nave |
+| `1`–`4`   | Cambiar skin nave |
 
 ## Puntuación
 
@@ -46,4 +46,4 @@ Luego visita `http://localhost:3000`.
 - Partículas de explosión al destruir asteroides
 - Estrellas fugaces que cruzan la pantalla (no bloquean el fin de nivel)
 - Power-ups: **velocidad** (propulsión extra 5s), **triple** (disparo triple 5s) y **escudo** (protege de asteroides 8s)
-- 3 skins de nave intercambiables con las teclas `1`–`3` (se guardan en localStorage)
+- 4 skins de nave intercambiables con las teclas `1`–`4` (se guardan en localStorage). La skin **MORADA** es el doble de grande y otorga el doble de puntos.

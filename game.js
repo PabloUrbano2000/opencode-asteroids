@@ -304,6 +304,15 @@ const SKINS = [
     flameX: -10,
     flameHalf: 3,
   },
+  {
+    name: 'MORADA',
+    verts: [[20, 0], [-12, -9], [-7, 0], [-12, 9]],
+    flameX: -8,
+    flameHalf: 4,
+    scale: 2,
+    mult: 2,
+    color: '#b45cff',
+  },
 ];
 
 function loadSkin() {
@@ -320,7 +329,7 @@ function saveSkin(i) {
 
 // ── Ship ──────────────────────────────────────────────────────────────────────
 class Ship {
-  constructor() { this.reset(); this.skin = loadSkin(); }
+  constructor() { this.skin = loadSkin(); this.reset(); }
 
   reset() {
     this.x      = W / 2;
@@ -328,7 +337,7 @@ class Ship {
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
+    this.radius = 12 * (SKINS[this.skin].scale || 1);
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
@@ -369,7 +378,7 @@ class Ship {
   tryShoot() {
     if (this.shootCooldown > 0 || this.dead) return [];
     this.shootCooldown = 0.2;
-    const NOSE = 21;
+    const NOSE = 21 * (SKINS[this.skin].scale || 1);
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
     if (this.tripleTime > 0) {
@@ -391,11 +400,13 @@ class Ship {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
-    ctx.strokeStyle = '#fff';
     ctx.lineWidth   = 1.5;
     ctx.lineJoin    = 'round';
 
     const skin = SKINS[this.skin];
+    const scale = skin.scale || 1;
+    ctx.scale(scale, scale);
+    ctx.strokeStyle = skin.color || '#fff';
     ctx.beginPath();
     ctx.moveTo(skin.verts[0][0], skin.verts[0][1]);
     for (let i = 1; i < skin.verts.length; i++)
@@ -589,12 +600,13 @@ function update(dt) {
 
   // Bala vs asteroide
   const newAsteroids = [];
+  const scoreMult = SKINS[ship.skin].mult || 1;
   for (const b of bullets) {
     for (const a of asteroids) {
       if (!a.dead && !b.dead && dist(b, a) < a.radius) {
         b.dead = true;
         a.dead = true;
-        score += POINTS[a.size];
+        score += POINTS[a.size] * scoreMult;
         explode(a.x, a.y, a.size * 5);
         maybeSpawnPowerUp(a.x, a.y);
         newAsteroids.push(...a.split());
@@ -610,7 +622,7 @@ function update(dt) {
       if (!s.dead && !b.dead && dist(b, s) < s.radius) {
         b.dead = true;
         s.dead = true;
-        score += SHOOTING_POINTS;
+        score += SHOOTING_POINTS * scoreMult;
         explode(s.x, s.y, 10);
         maybeSpawnPowerUp(s.x, s.y);
       }
@@ -669,7 +681,7 @@ function drawLifeIcon(x, y) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
-  ctx.strokeStyle = '#fff';
+  ctx.strokeStyle = skin.color || '#fff';
   ctx.lineWidth   = 1.2;
   ctx.lineJoin    = 'round';
   ctx.beginPath();
@@ -710,6 +722,11 @@ function drawHUD() {
 
   ctx.textAlign = 'right';
   ctx.fillText(`PIEL: ${SKINS[ship.skin].name}  [1-${SKINS.length}]`, W - 14, 46);
+  if ((SKINS[ship.skin].mult || 1) > 1) {
+    ctx.fillStyle = '#b45cff';
+    ctx.fillText(`PUNTOS x${SKINS[ship.skin].mult}`, W - 14, 66);
+    ctx.fillStyle = '#fff';
+  }
   ctx.textAlign = 'center';
   ctx.fillText(`NIVEL ${level}`, W / 2, 26);
 
