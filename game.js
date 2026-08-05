@@ -119,12 +119,14 @@ class Asteroid {
 }
 
 // ── PowerUp ───────────────────────────────────────────────────────────────────
+const POWERUP_TYPES = ['velocidad', 'triple'];
+
 class PowerUp {
-  constructor(x, y) {
+  constructor(x, y, type) {
     this.x = x;
     this.y = y;
     this.radius = 12;
-    this.type = 'velocidad';
+    this.type = type || POWERUP_TYPES[randInt(0, POWERUP_TYPES.length - 1)];
     this.ttl  = 8;
     this.age  = 0;
     this.dead = false;
@@ -169,6 +171,18 @@ class PowerUp {
     ctx.lineTo(  1, -2);
     ctx.closePath();
     ctx.stroke();
+
+    if (this.type === 'triple') {
+      ctx.strokeStyle = '#00ffff';
+      ctx.lineWidth   = 2;
+      ctx.lineCap     = 'round';
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath();
+        ctx.moveTo(-6, i * 6);
+        ctx.lineTo( 6, i * 6);
+        ctx.stroke();
+      }
+    }
 
     ctx.restore();
   }
@@ -272,6 +286,7 @@ class Ship {
     this.invincible    = 3;
     this.shootCooldown = 0;
     this.boostTime     = 0;
+    this.tripleTime    = 0;
     this.dead          = false;
   }
 
@@ -280,6 +295,7 @@ class Ship {
     if (this.invincible    > 0) this.invincible    -= dt;
     if (this.shootCooldown > 0) this.shootCooldown -= dt;
     if (this.boostTime     > 0) this.boostTime     -= dt;
+    if (this.tripleTime    > 0) this.tripleTime    -= dt;
 
     const ROT    = 3.5;   // rad/s
     const THRUST = 260;   // px/s²
@@ -307,6 +323,14 @@ class Ship {
     const NOSE = 21;
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
+    if (this.tripleTime > 0) {
+      const SPREAD = 0.18;
+      return [
+        new Bullet(ox, oy, this.angle - SPREAD),
+        new Bullet(ox, oy, this.angle),
+        new Bullet(ox, oy, this.angle + SPREAD),
+      ];
+    }
     return [new Bullet(ox, oy, this.angle)];
   }
 
@@ -425,6 +449,14 @@ function explode(x, y, count = 8) {
   for (let i = 0; i < count; i++) particles.push(new Particle(x, y));
 }
 
+function maybeDropPowerUp(x, y) {
+  if (Math.random() >= 0.05) return;
+  const active = powerups.map(p => p.type);
+  const available = POWERUP_TYPES.filter(t => !active.includes(t));
+  if (available.length > 0)
+    powerups.push(new PowerUp(x, y, available[randInt(0, available.length - 1)]));
+}
+
 function killShip() {
   explode(ship.x, ship.y, 14);
   ship.dead = true;
@@ -489,8 +521,7 @@ function update(dt) {
         a.dead = true;
         score += POINTS[a.size];
         explode(a.x, a.y, a.size * 5);
-        if (Math.random() < 0.05 && !powerups.some(p => p.type === 'velocidad'))
-          powerups.push(new PowerUp(a.x, a.y));
+        maybeDropPowerUp(a.x, a.y);
         newAsteroids.push(...a.split());
       }
     }
@@ -506,8 +537,7 @@ function update(dt) {
         s.dead = true;
         score += SHOOTING_POINTS;
         explode(s.x, s.y, 10);
-        if (Math.random() < 0.05 && !powerups.some(p => p.type === 'velocidad'))
-          powerups.push(new PowerUp(s.x, s.y));
+        maybeDropPowerUp(s.x, s.y);
       }
     }
   }
@@ -518,7 +548,8 @@ function update(dt) {
   for (const p of powerups) {
     if (dist(ship, p) < ship.radius + p.radius) {
       p.dead = true;
-      ship.boostTime = 5;
+      if (p.type === 'triple') ship.tripleTime = 5;
+      else ship.boostTime = 5;
       explode(p.x, p.y, 6);
     }
   }
@@ -566,6 +597,12 @@ function drawHUD() {
   if (ship.boostTime > 0) {
     ctx.fillStyle = '#ffa500';
     ctx.fillText(`VELOCIDAD ${ship.boostTime.toFixed(1)}s`, 14, 46);
+    ctx.fillStyle = '#fff';
+  }
+
+  if (ship.tripleTime > 0) {
+    ctx.fillStyle = '#00ffff';
+    ctx.fillText(`TRIPLE ${ship.tripleTime.toFixed(1)}s`, 14, 66);
     ctx.fillStyle = '#fff';
   }
 
