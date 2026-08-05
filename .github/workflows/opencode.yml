@@ -23,10 +23,13 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Configure git identity
+      - name: Configure git identity and auth
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $(printf "x-access-token:${GITHUB_TOKEN}" | base64 | tr -d '\n')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run opencode
         uses: anomalyco/opencode/github@latest
