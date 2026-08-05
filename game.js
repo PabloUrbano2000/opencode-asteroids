@@ -284,9 +284,43 @@ class ShootingStar {
   }
 }
 
+// ── Skins de nave ─────────────────────────────────────────────────────────────
+const SKINS = [
+  {
+    name: 'CLÁSICA',
+    verts: [[20, 0], [-12, -9], [-7, 0], [-12, 9]],
+    flameX: -8,
+    flameHalf: 4,
+  },
+  {
+    name: 'CAZA',
+    verts: [[22, 0], [3, -5], [-13, -6], [-6, 0], [-13, 6], [3, 5]],
+    flameX: -9,
+    flameHalf: 3,
+  },
+  {
+    name: 'ALAS',
+    verts: [[20, 0], [4, -2], [-4, -8], [-14, -8], [-9, -3], [-14, 8], [-4, 8], [4, 2]],
+    flameX: -10,
+    flameHalf: 3,
+  },
+];
+
+function loadSkin() {
+  try {
+    const i = parseInt(localStorage.getItem('asteroidsSkin'), 10);
+    if (i >= 0 && i < SKINS.length) return i;
+  } catch (e) { /* localStorage no disponible */ }
+  return 0;
+}
+
+function saveSkin(i) {
+  try { localStorage.setItem('asteroidsSkin', i); } catch (e) { /* ignorar */ }
+}
+
 // ── Ship ──────────────────────────────────────────────────────────────────────
 class Ship {
-  constructor() { this.reset(); }
+  constructor() { this.reset(); this.skin = loadSkin(); }
 
   reset() {
     this.x      = W / 2;
@@ -361,21 +395,20 @@ class Ship {
     ctx.lineWidth   = 1.5;
     ctx.lineJoin    = 'round';
 
-    // Silueta clásica: triángulo con muesca trasera
+    const skin = SKINS[this.skin];
     ctx.beginPath();
-    ctx.moveTo( 20,  0);   // nariz
-    ctx.lineTo(-12, -9);   // ala izquierda
-    ctx.lineTo( -7,  0);   // muesca trasera
-    ctx.lineTo(-12,  9);   // ala derecha
+    ctx.moveTo(skin.verts[0][0], skin.verts[0][1]);
+    for (let i = 1; i < skin.verts.length; i++)
+      ctx.lineTo(skin.verts[i][0], skin.verts[i][1]);
     ctx.closePath();
     ctx.stroke();
 
     // Llama del propulsor
     if (this.thrusting && Math.random() > 0.35) {
       ctx.beginPath();
-      ctx.moveTo(-8, -4);
-      ctx.lineTo(-8 - rand(6, 14), 0);
-      ctx.lineTo(-8,  4);
+      ctx.moveTo(skin.flameX, -skin.flameHalf);
+      ctx.lineTo(skin.flameX - rand(6, 14), 0);
+      ctx.lineTo(skin.flameX,  skin.flameHalf);
       ctx.strokeStyle = 'rgba(255, 130, 0, 0.85)';
       ctx.stroke();
     }
@@ -522,6 +555,14 @@ function update(dt) {
     return;
   }
 
+  // Cambiar skin con teclas 1..n
+  for (let i = 1; i <= SKINS.length; i++) {
+    if (pressed('Digit' + i)) {
+      ship.skin = i - 1;
+      saveSkin(ship.skin);
+    }
+  }
+
   // Disparar
   if (pressed('Space')) {
     bullets.push(...ship.tryShoot());
@@ -623,6 +664,8 @@ function update(dt) {
 
 // ── Draw ──────────────────────────────────────────────────────────────────────
 function drawLifeIcon(x, y) {
+  const skin = SKINS[ship.skin];
+  const SCALE = 0.45;
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
@@ -630,10 +673,9 @@ function drawLifeIcon(x, y) {
   ctx.lineWidth   = 1.2;
   ctx.lineJoin    = 'round';
   ctx.beginPath();
-  ctx.moveTo( 9,  0);
-  ctx.lineTo(-6, -5);
-  ctx.lineTo(-3,  0);
-  ctx.lineTo(-6,  5);
+  ctx.moveTo(skin.verts[0][0] * SCALE, skin.verts[0][1] * SCALE);
+  for (let i = 1; i < skin.verts.length; i++)
+    ctx.lineTo(skin.verts[i][0] * SCALE, skin.verts[i][1] * SCALE);
   ctx.closePath();
   ctx.stroke();
   ctx.restore();
@@ -666,6 +708,8 @@ function drawHUD() {
     ctx.fillStyle = '#fff';
   }
 
+  ctx.textAlign = 'right';
+  ctx.fillText(`PIEL: ${SKINS[ship.skin].name}  [1-${SKINS.length}]`, W - 14, 46);
   ctx.textAlign = 'center';
   ctx.fillText(`NIVEL ${level}`, W / 2, 26);
 
