@@ -119,12 +119,14 @@ class Asteroid {
 }
 
 // ── PowerUp ───────────────────────────────────────────────────────────────────
+const POWERUP_TYPES = ['velocidad', 'triple', 'escudo'];
+
 class PowerUp {
-  constructor(x, y, type = 'velocidad') {
+  constructor(x, y, type) {
     this.x = x;
     this.y = y;
     this.radius = 12;
-    this.type = type;
+    this.type = type || POWERUP_TYPES[randInt(0, POWERUP_TYPES.length - 1)];
     this.ttl  = 8;
     this.age  = 0;
     this.dead = false;
@@ -170,6 +172,16 @@ class PowerUp {
       ctx.lineTo( -7, -5);
       ctx.closePath();
       ctx.stroke();
+    } else if (this.type === 'triple') {
+      ctx.strokeStyle = '#00ffff';
+      ctx.lineWidth   = 2;
+      ctx.lineCap     = 'round';
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath();
+        ctx.moveTo(-6, i * 6);
+        ctx.lineTo( 6, i * 6);
+        ctx.stroke();
+      }
     } else {
       ctx.strokeStyle = '#ffa500';
       ctx.lineWidth   = 2.5;
@@ -288,6 +300,7 @@ class Ship {
     this.shootCooldown = 0;
     this.boostTime     = 0;
     this.shieldTime    = 0;
+    this.tripleTime    = 0;
     this.dead          = false;
   }
 
@@ -297,6 +310,7 @@ class Ship {
     if (this.shootCooldown > 0) this.shootCooldown -= dt;
     if (this.boostTime     > 0) this.boostTime     -= dt;
     if (this.shieldTime    > 0) this.shieldTime    -= dt;
+    if (this.tripleTime    > 0) this.tripleTime    -= dt;
 
     const ROT    = 3.5;   // rad/s
     const THRUST = 260;   // px/s²
@@ -324,6 +338,14 @@ class Ship {
     const NOSE = 21;
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
+    if (this.tripleTime > 0) {
+      const SPREAD = 0.18;
+      return [
+        new Bullet(ox, oy, this.angle - SPREAD),
+        new Bullet(ox, oy, this.angle),
+        new Bullet(ox, oy, this.angle + SPREAD),
+      ];
+    }
     return [new Bullet(ox, oy, this.angle)];
   }
 
@@ -463,9 +485,10 @@ function explode(x, y, count = 8) {
 
 function maybeSpawnPowerUp(x, y) {
   if (Math.random() >= 0.05) return;
-  const type = Math.random() < 0.5 ? 'velocidad' : 'escudo';
-  if (!powerups.some(p => p.type === type))
-    powerups.push(new PowerUp(x, y, type));
+  const active = powerups.map(p => p.type);
+  const available = POWERUP_TYPES.filter(t => !active.includes(t));
+  if (available.length > 0)
+    powerups.push(new PowerUp(x, y, available[randInt(0, available.length - 1)]));
 }
 
 function killShip() {
@@ -559,7 +582,8 @@ function update(dt) {
   for (const p of powerups) {
     if (dist(ship, p) < ship.radius + p.radius) {
       p.dead = true;
-      if (p.type === 'escudo') ship.shieldTime = 8;
+      if (p.type === 'triple') ship.tripleTime = 5;
+      else if (p.type === 'escudo') ship.shieldTime = 8;
       else ship.boostTime = 5;
       explode(p.x, p.y, 6);
     }
@@ -632,6 +656,13 @@ function drawHUD() {
   if (ship.shieldTime > 0) {
     ctx.fillStyle = '#00e5ff';
     ctx.fillText(`ESCUDO ${ship.shieldTime.toFixed(1)}s`, 14, hudY);
+    hudY += 20;
+    ctx.fillStyle = '#fff';
+  }
+  if (ship.tripleTime > 0) {
+    ctx.fillStyle = '#00ffff';
+    ctx.fillText(`TRIPLE ${ship.tripleTime.toFixed(1)}s`, 14, hudY);
+    hudY += 20;
     ctx.fillStyle = '#fff';
   }
 
