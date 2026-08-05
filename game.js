@@ -291,18 +291,36 @@ const SKINS = [
     verts: [[20, 0], [-12, -9], [-7, 0], [-12, 9]],
     flameX: -8,
     flameHalf: 4,
+    color: '#fff',
+    scale: 1,
+    pointsMult: 1,
   },
   {
     name: 'CAZA',
     verts: [[22, 0], [3, -5], [-13, -6], [-6, 0], [-13, 6], [3, 5]],
     flameX: -9,
     flameHalf: 3,
+    color: '#fff',
+    scale: 1,
+    pointsMult: 1,
   },
   {
     name: 'ALAS',
     verts: [[20, 0], [4, -2], [-4, -8], [-14, -8], [-9, -3], [-14, 8], [-4, 8], [4, 2]],
     flameX: -10,
     flameHalf: 3,
+    color: '#fff',
+    scale: 1,
+    pointsMult: 1,
+  },
+  {
+    name: 'MORADA',
+    verts: [[40, 0], [-24, -18], [-14, 0], [-24, 18]],
+    flameX: -16,
+    flameHalf: 8,
+    color: '#a855f7',
+    scale: 2,
+    pointsMult: 2,
   },
 ];
 
@@ -320,7 +338,7 @@ function saveSkin(i) {
 
 // ── Ship ──────────────────────────────────────────────────────────────────────
 class Ship {
-  constructor() { this.reset(); this.skin = loadSkin(); }
+  constructor() { this.skin = loadSkin(); this.reset(); }
 
   reset() {
     this.x      = W / 2;
@@ -328,7 +346,7 @@ class Ship {
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
+    this.radius = 12 * SKINS[this.skin].scale;
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
@@ -369,7 +387,7 @@ class Ship {
   tryShoot() {
     if (this.shootCooldown > 0 || this.dead) return [];
     this.shootCooldown = 0.2;
-    const NOSE = 21;
+    const NOSE = 21 * SKINS[this.skin].scale;
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
     if (this.tripleTime > 0) {
@@ -388,14 +406,16 @@ class Ship {
     // Parpadeo durante invencibilidad de reaparición
     if (this.invincible > 0 && Math.floor(this.invincible * 8) % 2 === 0) return;
 
+    const skin = SKINS[this.skin];
+
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth   = 1.5;
+    ctx.scale(skin.scale, skin.scale);
+    ctx.strokeStyle = skin.color;
+    ctx.lineWidth   = 1.5 / skin.scale;
     ctx.lineJoin    = 'round';
 
-    const skin = SKINS[this.skin];
     ctx.beginPath();
     ctx.moveTo(skin.verts[0][0], skin.verts[0][1]);
     for (let i = 1; i < skin.verts.length; i++)
@@ -407,7 +427,7 @@ class Ship {
     if (this.thrusting && Math.random() > 0.35) {
       ctx.beginPath();
       ctx.moveTo(skin.flameX, -skin.flameHalf);
-      ctx.lineTo(skin.flameX - rand(6, 14), 0);
+      ctx.lineTo(skin.flameX - rand(6, 14) * skin.scale, 0);
       ctx.lineTo(skin.flameX,  skin.flameHalf);
       ctx.strokeStyle = 'rgba(255, 130, 0, 0.85)';
       ctx.stroke();
@@ -516,6 +536,10 @@ function explode(x, y, count = 8) {
   for (let i = 0; i < count; i++) particles.push(new Particle(x, y));
 }
 
+function addScore(points) {
+  score += points * SKINS[ship.skin].pointsMult;
+}
+
 function maybeSpawnPowerUp(x, y) {
   if (Math.random() >= 0.05) return;
   const active = powerups.map(p => p.type);
@@ -559,6 +583,7 @@ function update(dt) {
   for (let i = 1; i <= SKINS.length; i++) {
     if (pressed('Digit' + i)) {
       ship.skin = i - 1;
+      ship.radius = 12 * SKINS[ship.skin].scale;
       saveSkin(ship.skin);
     }
   }
@@ -594,7 +619,7 @@ function update(dt) {
       if (!a.dead && !b.dead && dist(b, a) < a.radius) {
         b.dead = true;
         a.dead = true;
-        score += POINTS[a.size];
+        addScore(POINTS[a.size]);
         explode(a.x, a.y, a.size * 5);
         maybeSpawnPowerUp(a.x, a.y);
         newAsteroids.push(...a.split());
@@ -610,7 +635,7 @@ function update(dt) {
       if (!s.dead && !b.dead && dist(b, s) < s.radius) {
         b.dead = true;
         s.dead = true;
-        score += SHOOTING_POINTS;
+        addScore(SHOOTING_POINTS);
         explode(s.x, s.y, 10);
         maybeSpawnPowerUp(s.x, s.y);
       }
@@ -647,7 +672,7 @@ function update(dt) {
       if (dist(ship, s) < ship.radius + s.radius * 0.82) {
         if (ship.shieldTime > 0) {
           s.dead = true;
-          score += SHOOTING_POINTS;
+          addScore(SHOOTING_POINTS);
           explode(s.x, s.y, 8);
         } else {
           killShip();
@@ -665,11 +690,11 @@ function update(dt) {
 // ── Draw ──────────────────────────────────────────────────────────────────────
 function drawLifeIcon(x, y) {
   const skin = SKINS[ship.skin];
-  const SCALE = 0.45;
+  const SCALE = 0.45 * skin.scale;
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
-  ctx.strokeStyle = '#fff';
+  ctx.strokeStyle = skin.color;
   ctx.lineWidth   = 1.2;
   ctx.lineJoin    = 'round';
   ctx.beginPath();
