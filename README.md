@@ -24,11 +24,12 @@ Luego visita `http://localhost:3000`.
 
 ## Controles
 
-| Tecla     | Acción     |
-| --------- | ---------- |
-| `←` `→`   | Rotar nave |
-| `↑`       | Propulsar  |
-| `Espacio` | Disparar   |
+| Tecla     | Acción            |
+| --------- | ----------------- |
+| `←` `→`   | Rotar nave        |
+| `↑`       | Propulsar         |
+| `Espacio` | Disparar          |
+| `1`–`3`   | Cambiar skin nave |
 
 ## Puntuación
 
@@ -43,4 +44,6 @@ Luego visita `http://localhost:3000`.
 - 3 vidas con invencibilidad temporal al reaparecer (parpadeo)
 - Asteroides se parten en fragmentos más pequeños al ser destruidos
 - Partículas de explosión al destruir asteroides
-- Power-ups: **velocidad** (propulsión extra 5s) y **triple** (disparo triple en línea recta 5s)
+- Estrellas fugaces que cruzan la pantalla (no bloquean el fin de nivel)
+- Power-ups: **velocidad** (propulsión extra 5s), **triple** (disparo triple 5s) y **escudo** (protege de asteroides 8s)
+- 3 skins de nave intercambiables con las teclas `1`–`3` (se guardan en localStorage)
